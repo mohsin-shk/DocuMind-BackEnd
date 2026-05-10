@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Backend for Documind. An AI based document analyser and space to compare and reason multi-document using AI. ",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev":"nodemon src/server.js"
   },
   "keywords": [
     "document",
@@ -16,5 +17,8 @@
     "document-searcher"
   ],
   "author": "mohsin",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }
