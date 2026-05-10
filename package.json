@@ -1,0 +1,20 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend for Documind. An AI based document analyser and space to compare and reason multi-document using AI. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "document",
+    "ai",
+    "documind",
+    "chat",
+    "compare-documents",
+    "document-analyser",
+    "document-searcher"
+  ],
+  "author": "mohsin",
+  "license": "MIT"
+}
