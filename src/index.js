@@ -2,13 +2,31 @@
 import connectDB from "./configs/db.js"
 import { app } from "./app.js"
 import {env} from "./configs/env.js"
+import { User } from "./models/user.model.js"
 
 // dotenv.config({
 //     path:"./.env"
 // })
 
 connectDB()
-.then(()=>{
+.then(async ()=>{
+
+    /*
+    ========================================
+    SYNC MONGODB INDEXES
+    ========================================
+    */
+
+    await User.syncIndexes();
+
+    console.log("User indexes synced");
+
+    /*
+    ========================================
+    START SERVER
+    ========================================
+    */
+
     app.listen(env.PORT || 8000,()=>{
         console.log(`🛠️ Server is listening on port: ${env.PORT || 8000}`)
     })

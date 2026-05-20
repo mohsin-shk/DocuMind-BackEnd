@@ -5,5 +5,13 @@ export const env = cleanEnv(process.env, {
     default: 8000,
   }),
   CORS_ORIGIN: str(),
-  MONGODB_URI: str()
+  MONGODB_URI: str(),
+  NODE_ENV: str({
+   default:"development"
+  }),
+  ACCESS_TOKEN_SECRET: str(),
+  ACCESS_TOKEN_EXPIRY: str(),
+  REFRESH_TOKEN_SECRET: str(),
+  REFRESH_TOKEN_EXPIRY: str(),
+
 });

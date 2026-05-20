@@ -6,6 +6,7 @@ import compression from "compression";
 import morgan from "morgan";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import {env} from "./configs/env.js"
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
@@ -20,7 +21,6 @@ app.use(morgan("dev"));
 
 // CORS
 app.use(cors({
-    // origin:process.env.CORS_ORIGIN,
     origin:env.CORS_ORIGIN,
     credentials:true
 }))
@@ -41,8 +41,7 @@ Routes will go here
 ========================
 */
 
-// Example:
-// app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 // 404 handler
 app.use((req, res) => {
