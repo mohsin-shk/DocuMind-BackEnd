@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
-
+import jwt from "jsonwebtoken";
+import {env} from "../configs/env.js"
 /*
 ========================================
 REGISTER USER SERVICE
@@ -443,7 +444,7 @@ LOGOUT USER SERVICE
 ========================================
 */
 
-const logoutUser = async () => {
+const logoutUser = async (userId) => {
   /*
   ========================================
   VALIDATE USER ID
