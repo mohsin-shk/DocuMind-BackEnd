@@ -31,6 +31,7 @@ const uploadFileToCloudinary = async (localFilePath) => {
                 {
                     resource_type: "raw",
                     folder: "documind/documents",
+                    access_mode: "public",
                 }
             );
 
