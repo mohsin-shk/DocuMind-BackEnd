@@ -16,4 +16,8 @@ export const env = cleanEnv(process.env, {
   CLOUDINARY_CLOUD_NAME:str(),
   CLOUDINARY_API_KEY:str(),
   CLOUDINARY_API_SECRET:str(),
+  OPENAI_API_KEY:str(),
+  OPENAI_EMBEDDING_MODEL:str(),
+  PINECONE_API_KEY:str(),
+  PINECONE_INDEX_NAME:str(),
 });

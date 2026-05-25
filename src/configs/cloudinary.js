@@ -41,7 +41,7 @@ const uploadFileToCloudinary = async (localFilePath) => {
        ========================================
        */
 
-        fs.unlinkSync(localFilePath);
+        // fs.unlinkSync(localFilePath);
 
         return response;
 
