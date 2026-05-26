@@ -75,7 +75,7 @@ const upsertDocumentEmbeddings = async ({ ownerId, documentId, title, embeddedCh
                 (chunk) => ({
                     id: `${documentId}_${chunk.chunkIndex}`,
 
-                    values:Array.from(chunk.embedding),
+                    values: Array.from(chunk.embedding),
 
                     metadata: {
                         documentId:
@@ -104,7 +104,7 @@ const upsertDocumentEmbeddings = async ({ ownerId, documentId, title, embeddedCh
             .namespace(namespace)
             .upsert({ records: vectors });
 
-        
+
 
         /*
         ========================================
@@ -133,7 +133,7 @@ QUERY DOCUMENT EMBEDDINGS
 ========================================
 */
 
-const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, }) => {
+const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, documentId = null, }) => {
     /*
     ========================================
     VALIDATE INPUT
@@ -171,6 +171,9 @@ const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, }) =
                     vector: queryEmbedding,
                     topK,
                     includeMetadata: true,
+                    ...(documentId && {
+                        filter: { documentId: { $eq: documentId.toString() } }
+                    }),
                 });
 
         /*
