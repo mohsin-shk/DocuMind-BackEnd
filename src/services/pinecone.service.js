@@ -133,7 +133,7 @@ QUERY DOCUMENT EMBEDDINGS
 ========================================
 */
 
-const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, documentId = null, }) => {
+const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, documentIds = [], }) => {
     /*
     ========================================
     VALIDATE INPUT
@@ -161,6 +161,28 @@ const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, docu
 
         /*
         ========================================
+        BUILD OPTIONAL FILTER
+        ========================================
+        */
+
+        let filter = undefined;
+
+        if (
+            Array.isArray(documentIds) &&
+            documentIds.length > 0
+        ) {
+            filter = {
+                documentId: {
+                    $in: documentIds.map(
+                        (id) =>
+                            id.toString()
+                    ),
+                },
+            };
+        }
+
+        /*
+        ========================================
         QUERY VECTORS
         ========================================
         */
@@ -171,8 +193,8 @@ const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, docu
                     vector: queryEmbedding,
                     topK,
                     includeMetadata: true,
-                    ...(documentId && {
-                        filter: { documentId: { $eq: documentId.toString() } }
+                    ...(filter && {
+                        filter,
                     }),
                 });
 
@@ -181,12 +203,15 @@ const queryDocumentEmbeddings = async ({ ownerId, queryEmbedding, topK = 5, docu
         RETURN MATCHES
         ========================================
         */
-        return response.matches || [];
+        return (
+        response.matches || []
+        );
 
     } catch (error) {
+        if (error instanceof ApiError) throw error;
         throw new ApiError(
             500,
-            "Failed to query document embeddings"
+            error.message || "Failed to query document embeddings"
         );
     }
 }

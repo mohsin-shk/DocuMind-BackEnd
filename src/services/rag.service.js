@@ -67,7 +67,7 @@ ASK QUESTION USING RAG
 const askQuestion = async ({
   ownerId,
   question,
-  documentId = null,
+  documentIds = [],
 }) => {
   /*
   ========================================
@@ -79,6 +79,21 @@ const askQuestion = async ({
     throw new ApiError(
       400,
       "Owner ID and question are required"
+    );
+  }
+
+  /*
+========================================
+VALIDATE DOCUMENT IDS
+========================================
+*/
+
+  if (
+    !Array.isArray(documentIds)
+  ) {
+    throw new ApiError(
+      400,
+      "documentIds must be an array"
     );
   }
 
@@ -105,7 +120,7 @@ const askQuestion = async ({
         ownerId,
         queryEmbedding,
         topK: 5,
-        documentId,
+        documentIds,
       });
 
     /*
@@ -228,8 +243,8 @@ ${question}
 
     return {
       answer,
-
       sources,
+      tokenUsage:completion.usage || {},
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;
