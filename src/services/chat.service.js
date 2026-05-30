@@ -2,9 +2,8 @@ import { Chat } from "../models/chat.model.js";
 import { Message } from "../models/message.model.js";
 import { Document } from "../models/document.model.js";
 import { ApiError } from "../utils/ApiError.js";
-import { askQuestion } from "./rag.service.js";
+import { askQuestion, generateChatTitle } from "./rag.service.js";
 import { env } from "../configs/env.js";
-
 /*
 ========================================
 CREATE CHAT
@@ -22,10 +21,10 @@ const createChat = async ({
   ========================================
   */
 
-  if (!ownerId || !title?.trim()) {
+  if (!ownerId) {
     throw new ApiError(
       400,
-      "Owner ID and title are required"
+      "Owner ID is required"
     );
   }
 
@@ -89,10 +88,12 @@ const createChat = async ({
   ========================================
   */
 
+  const chatTitle = title?.trim() || "New Chat";
+
   const chat = await Chat.create({
     owner: ownerId,
 
-    title: title.trim(),
+    title: chatTitle,
 
     documents:
       uniqueDocumentIds,
@@ -145,7 +146,6 @@ const sendMessage = async ({
   const chat =
     await Chat.findOne({
       _id: chatId,
-
       owner: ownerId,
     });
 
@@ -155,6 +155,24 @@ const sendMessage = async ({
       "Chat not found"
     );
   }
+
+  /*
+ ========================================
+ CHECK FIRST MESSAGE + FETCH HISTORY
+ ========================================
+ */
+
+  const existingMessages = await Message.find({
+    chat: chat._id,
+  }).sort({ createdAt: 1 }).limit(20);
+
+  const isFirstMessage = existingMessages.length === 0;
+
+  const conversationHistory = existingMessages.map((msg) => ({
+    role: msg.role,
+    content: msg.content,
+  }));
+
 
   /*
   ========================================
@@ -169,24 +187,7 @@ const sendMessage = async ({
       content: content.trim(),
     });
 
-  /*
-========================================
-FETCH CONVERSATION HISTORY
-========================================
-*/
 
-  const MAX_HISTORY = 20; // cap at 10 turns (20 messages)
-
-  const priorMessages = await Message.find({
-    chat: chat._id,
-  }).sort({ createdAt: 1 }).limit(MAX_HISTORY);
-
-  const conversationHistory = priorMessages.map((msg) => ({
-    role: msg.role,       // "user" or "assistant"
-    content: msg.content,
-  }));
-  
-  const historyWithoutCurrentTurn = conversationHistory.slice(0, -1);
 
   /*
   ========================================
@@ -208,7 +209,7 @@ FETCH CONVERSATION HISTORY
       ownerId,
       question: content,
       documentIds: chat.documents || [],
-      conversationHistory: historyWithoutCurrentTurn,
+      conversationHistory,
     });
 
   /*
@@ -219,6 +220,29 @@ CALCULATE RESPONSE TIME
 
   const responseTime =
     Date.now() - startTime;
+  
+  /*
+ ========================================
+ UPDATE CHAT + OPTIONAL TITLE
+ ========================================
+ */
+
+  if (isFirstMessage) {
+    const documentTitles = await Document.find({
+      _id: { $in: chat.documents },
+    }).select("title").then((docs) => docs.map((d) => d.title));
+
+    const generatedTitle = await generateChatTitle({
+      question: content,
+      documentTitles,
+    });
+
+    chat.title = generatedTitle;
+  }
+
+  chat.lastMessageAt = new Date();
+  await chat.save(); // ← single save, handles both title + timestamp
+
 
   /*
   ========================================
@@ -229,15 +253,9 @@ CALCULATE RESPONSE TIME
   const assistantMessage =
     await Message.create({
       chat: chat._id,
-
       role: "assistant",
-
-      content:
-        ragResponse.answer,
-
-      sources:
-        ragResponse.sources,
-
+      content:ragResponse.answer,
+      sources:ragResponse.sources,
       tokenUsage: {
         promptTokens:
           ragResponse
@@ -261,17 +279,8 @@ CALCULATE RESPONSE TIME
 
       responseTime,
     });
-  /*
- ========================================
- UPDATE CHAT ACTIVITY
- ========================================
- */
 
-  chat.lastMessageAt =
-    new Date();
-
-  await chat.save();
-
+  
   /*
   ========================================
   RETURN RESPONSE
@@ -401,7 +410,7 @@ const getUserChats = async (
     .sort({
       lastMessageAt: -1,
     }).lean();
-  
+
   if (!chats.length) return [];
 
   /*
@@ -409,54 +418,54 @@ const getUserChats = async (
     FETCH ALL LATEST MESSAGES IN ONE QUERY
     ========================================
   */
-  
+
   const chatIds = chats.map((chat) => chat._id);
 
   const latestMessages = await Message.aggregate([
-        {
-            $match: {
-                chat: { $in: chatIds },
-            },
-        },
-        {
-            $sort: { createdAt: -1 },
-        },
-        {
-            $group: {
-                _id: "$chat",            // group by chatId
-                role: { $first: "$role" },
-                content: { $first: "$content" },
-                createdAt: { $first: "$createdAt" },
-            },
-        },
-    ]);
-  
+    {
+      $match: {
+        chat: { $in: chatIds },
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+    {
+      $group: {
+        _id: "$chat",            // group by chatId
+        role: { $first: "$role" },
+        content: { $first: "$content" },
+        createdAt: { $first: "$createdAt" },
+      },
+    },
+  ]);
+
   const latestMessageMap = new Map(
-        latestMessages.map((msg) => [
-            msg._id.toString(),
-            {
-                role: msg.role,
-                content: msg.content,
-                createdAt: msg.createdAt,
-            },
-        ])
-    );
-  
+    latestMessages.map((msg) => [
+      msg._id.toString(),
+      {
+        role: msg.role,
+        content: msg.content,
+        createdAt: msg.createdAt,
+      },
+    ])
+  );
+
   /*
     ========================================
     FORMAT AND RETURN
     ========================================
     */
 
-    return chats.map((chat) => ({
-        _id: chat._id,
-        title: chat.title,
-        documents: chat.documents,
-        documentCount: chat.documents.length,
-        lastMessage: latestMessageMap.get(chat._id.toString()) || null,
-        lastMessageAt: chat.lastMessageAt,
-        createdAt: chat.createdAt,
-    }));
+  return chats.map((chat) => ({
+    _id: chat._id,
+    title: chat.title,
+    documents: chat.documents,
+    documentCount: chat.documents.length,
+    lastMessage: latestMessageMap.get(chat._id.toString()) || null,
+    lastMessageAt: chat.lastMessageAt,
+    createdAt: chat.createdAt,
+  }));
 
 
   /*

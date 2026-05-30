@@ -4,6 +4,46 @@ import { generateEmbedding } from "./embedding.service.js";
 import { queryDocumentEmbeddings } from "./pinecone.service.js";
 import { openai } from "./openai.service.js";
 
+
+/*
+========================================
+GENERATE CHAT TITLE
+========================================
+*/
+
+const generateChatTitle = async ({
+    question,
+    documentTitles = [],
+}) => {
+    try {
+        const context = documentTitles.length
+            ? `Documents: ${documentTitles.join(", ")}`
+            : "";
+
+        const completion = await openai.chat.completions.create({
+            model: env.OPENAI_CHAT_MODEL,
+            temperature: 0.3,
+            max_tokens: 20,
+            messages: [
+                {
+                    role: "system",
+                    content: `Generate a short, specific chat title (max 6 words) based on the user's first question and document context. Return ONLY the title, no quotes, no punctuation at the end.`,
+                },
+                {
+                    role: "user",
+                    content: `${context}\nFirst question: "${question}"`,
+                },
+            ],
+        });
+
+        const generated = completion.choices?.[0]?.message?.content?.trim();
+        return generated || question.slice(0, 50); // fallback to truncated question
+
+    } catch {
+        return question.slice(0, 50); // never crash over a title
+    }
+};
+
 /*
 ========================================
 BUILD RAG CONTEXT
@@ -263,4 +303,4 @@ ${question}
   }
 };
 
-export { askQuestion };
+export { askQuestion,generateChatTitle };
