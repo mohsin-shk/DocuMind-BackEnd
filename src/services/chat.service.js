@@ -166,8 +166,27 @@ const sendMessage = async ({
     await Message.create({
       chat: chat._id,
       role: "user",
-      content:content.trim(),
+      content: content.trim(),
     });
+
+  /*
+========================================
+FETCH CONVERSATION HISTORY
+========================================
+*/
+
+  const MAX_HISTORY = 20; // cap at 10 turns (20 messages)
+
+  const priorMessages = await Message.find({
+    chat: chat._id,
+  }).sort({ createdAt: 1 }).limit(MAX_HISTORY);
+
+  const conversationHistory = priorMessages.map((msg) => ({
+    role: msg.role,       // "user" or "assistant"
+    content: msg.content,
+  }));
+  
+  const historyWithoutCurrentTurn = conversationHistory.slice(0, -1);
 
   /*
   ========================================
@@ -182,16 +201,14 @@ const sendMessage = async ({
   RUN RAG PIPELINE
   ========================================
   */
- 
+
 
   const ragResponse =
     await askQuestion({
       ownerId,
-
       question: content,
-
-      documentIds:
-        chat.documents || [],
+      documentIds: chat.documents || [],
+      conversationHistory: historyWithoutCurrentTurn,
     });
 
   /*
@@ -383,7 +400,64 @@ const getUserChats = async (
 
     .sort({
       lastMessageAt: -1,
-    });
+    }).lean();
+  
+  if (!chats.length) return [];
+
+  /*
+    ========================================
+    FETCH ALL LATEST MESSAGES IN ONE QUERY
+    ========================================
+  */
+  
+  const chatIds = chats.map((chat) => chat._id);
+
+  const latestMessages = await Message.aggregate([
+        {
+            $match: {
+                chat: { $in: chatIds },
+            },
+        },
+        {
+            $sort: { createdAt: -1 },
+        },
+        {
+            $group: {
+                _id: "$chat",            // group by chatId
+                role: { $first: "$role" },
+                content: { $first: "$content" },
+                createdAt: { $first: "$createdAt" },
+            },
+        },
+    ]);
+  
+  const latestMessageMap = new Map(
+        latestMessages.map((msg) => [
+            msg._id.toString(),
+            {
+                role: msg.role,
+                content: msg.content,
+                createdAt: msg.createdAt,
+            },
+        ])
+    );
+  
+  /*
+    ========================================
+    FORMAT AND RETURN
+    ========================================
+    */
+
+    return chats.map((chat) => ({
+        _id: chat._id,
+        title: chat.title,
+        documents: chat.documents,
+        documentCount: chat.documents.length,
+        lastMessage: latestMessageMap.get(chat._id.toString()) || null,
+        lastMessageAt: chat.lastMessageAt,
+        createdAt: chat.createdAt,
+    }));
+
 
   /*
   ========================================
@@ -391,43 +465,43 @@ const getUserChats = async (
   ========================================
   */
 
-  const formattedChats =
-    await Promise.all(
-      chats.map(async (chat) => {
-        const latestMessage =
-          await Message.findOne({
-            chat: chat._id,
-          })
-            .sort({
-              createdAt: -1,
-            })
+  // const formattedChats =
+  //   await Promise.all(
+  //     chats.map(async (chat) => {
+  //       const latestMessage =
+  //         await Message.findOne({
+  //           chat: chat._id,
+  //         })
+  //           .sort({
+  //             createdAt: -1,
+  //           })
 
-            .select(
-              "role content createdAt"
-            );
+  //           .select(
+  //             "role content createdAt"
+  //           );
 
-        return {
-          _id: chat._id,
+  //       return {
+  //         _id: chat._id,
 
-          title: chat.title,
+  //         title: chat.title,
 
-          documents:
-            chat.documents,
+  //         documents:
+  //           chat.documents,
 
-          documentCount:
-            chat.documents.length,
+  //         documentCount:
+  //           chat.documents.length,
 
-          lastMessage:
-            latestMessage || null,
+  //         lastMessage:
+  //           latestMessage || null,
 
-          lastMessageAt:
-            chat.lastMessageAt,
+  //         lastMessageAt:
+  //           chat.lastMessageAt,
 
-          createdAt:
-            chat.createdAt,
-        };
-      })
-    );
+  //         createdAt:
+  //           chat.createdAt,
+  //       };
+  //     })
+  //   );
 
   /*
 ========================================
@@ -435,7 +509,7 @@ RETURN CHATS
 ========================================
 */
 
-  return formattedChats;
+  // return formattedChats;
 
 }
 
@@ -508,6 +582,6 @@ const deleteChat = async ({
   */
 
   return chat;
- }
+}
 
 export { createChat, sendMessage, getChatMessages, getUserChats, deleteChat, };

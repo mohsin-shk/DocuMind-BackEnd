@@ -7,7 +7,7 @@ import {
 } from "../services/chat.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import mongoose from "mongoose";
 
 /*
 ========================================
@@ -22,13 +22,15 @@ const createChatController =
   ) => {
     const { title, documentIds } =
       req.body;
+    
+    if (!title?.trim()) {
+        throw new ApiError(400, "Title is required");
+    }
 
     const chat =
       await createChat({
         ownerId: req.user._id,
-
         title,
-
         documentIds,
       });
 
@@ -54,15 +56,22 @@ const sendMessageController =
     res
   ) => {
     const { chatId } = req.params;
-
     const { content } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
+    throw new ApiError(400, "Invalid chat ID");
+    }
+
+    if (!content?.trim()) {
+        throw new ApiError(400, "Message content is required");
+    }
+
+    
 
     const response =
       await sendMessage({
         ownerId: req.user._id,
-
         chatId,
-
         content,
       });
 

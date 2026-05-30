@@ -68,6 +68,7 @@ const askQuestion = async ({
   ownerId,
   question,
   documentIds = [],
+  conversationHistory = [], 
 }) => {
   /*
   ========================================
@@ -119,7 +120,8 @@ VALIDATE DOCUMENT IDS
       await queryDocumentEmbeddings({
         ownerId,
         queryEmbedding,
-        topK: 5,
+        // topK: 5,
+        topK: documentIds.length > 1 ? 10 : 5,
         documentIds,
       });
 
@@ -211,6 +213,7 @@ ${question}
     // const answer =
     //   completion.choices?.[0]
     //     ?.message?.content;
+    // console.log("TOKEN USAGE:", completion.usage);
     const choice = completion.choices?.[0];
     const answer = choice?.message?.content;
     const finishReason = choice?.finish_reason;
@@ -244,7 +247,11 @@ ${question}
     return {
       answer,
       sources,
-      tokenUsage:completion.usage || {},
+      tokenUsage: {
+        prompt_tokens: completion.usage?.prompt_tokens || 0,
+        completion_tokens: completion.usage?.completion_tokens || 0,
+        total_tokens: completion.usage?.total_tokens || 0,
+    },
     };
   } catch (error) {
     if (error instanceof ApiError) throw error;

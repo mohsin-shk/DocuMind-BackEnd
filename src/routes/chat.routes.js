@@ -6,11 +6,11 @@ import {
   getUserChatsController,
   deleteChatController,
 } from "../controllers/chat.controller.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.use(verifyJWT);
+router.use(requireAuth);
 
 /*
 ========================================
