@@ -1,6 +1,25 @@
 import multer from "multer";
 import path from "path";
 import { ApiError } from "../utils/ApiError.js";
+import fs from "fs";
+
+/*
+========================================
+CREATE UPLOAD DIRECTORY ON DEPLOYMENT SERVER IF NOT THERE
+========================================
+*/
+
+const uploadDirectory =
+  "./public/temp";
+
+if (
+  !fs.existsSync(uploadDirectory)
+) {
+  fs.mkdirSync(
+    uploadDirectory,
+    { recursive: true }
+  );
+}
 
 /*
 ========================================
@@ -22,7 +41,7 @@ MULTER STORAGE CONFIG
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './public/temp')
+    cb(null, uploadDirectory)
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
