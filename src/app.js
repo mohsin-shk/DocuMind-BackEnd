@@ -9,6 +9,7 @@ import {env} from "./configs/env.js"
 import authRoutes from "./routes/auth.routes.js";
 import documentRoutes from "./routes/document.routes.js"
 import chatRoutes from "./routes/chat.routes.js";
+import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use(cookieParser());
 Routes will go here
 ========================
 */
+app.use(globalLimiter);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents",documentRoutes);

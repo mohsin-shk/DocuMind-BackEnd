@@ -1,7 +1,8 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
-import {uploadDocument} from "../services/document.service.js";
+import {uploadDocument,getUserDocuments,getDocument,deleteDocument,} from "../services/document.service.js";
+import mongoose from "mongoose";
 
 /*
 ========================================
@@ -61,4 +62,82 @@ const uploadDocumentController = asyncHandler( async (req,res)=>{
 
 })
 
-export {uploadDocumentController,};
+
+/*
+========================================
+GET USER DOCUMENTS
+========================================
+*/
+
+const getUserDocumentsController = asyncHandler(async (req, res) => {
+    const documents = await getUserDocuments(req.user._id);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                documents,
+                count: documents.length,
+            },
+            "Documents fetched successfully"
+        )
+    );
+});
+
+
+/*
+========================================
+GET SINGLE DOCUMENT
+========================================
+*/
+
+const getDocumentController = asyncHandler(async (req, res) => {
+    const { documentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(documentId)) {
+        throw new ApiError(400, "Invalid document ID");
+    }
+
+    const document = await getDocument({
+        ownerId: req.user._id,
+        documentId,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            document,
+            "Document fetched successfully"
+        )
+    );
+});
+
+/*
+========================================
+DELETE DOCUMENT
+========================================
+*/
+
+const deleteDocumentController = asyncHandler(async (req, res) => {
+    const { documentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(documentId)) {
+        throw new ApiError(400, "Invalid document ID");
+    }
+
+    const deletedDocument = await deleteDocument({
+        ownerId: req.user._id,
+        documentId,
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { documentId: deletedDocument._id },
+            "Document deleted successfully"
+        )
+    );
+});
+
+
+export {uploadDocumentController,getUserDocumentsController,getDocumentController,deleteDocumentController,};

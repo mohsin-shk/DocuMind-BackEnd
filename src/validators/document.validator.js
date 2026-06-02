@@ -104,9 +104,14 @@ const chatIdParamsSchema =
     chatId: objectIdSchema,
   });
 
+const documentIdParamsSchema = z.object({
+    documentId: objectIdSchema,
+});
+
 export {
     uploadDocumentSchema,
     createChatSchema,
     sendMessageSchema,
-    chatIdParamsSchema
+    chatIdParamsSchema,
+    documentIdParamsSchema,
 };

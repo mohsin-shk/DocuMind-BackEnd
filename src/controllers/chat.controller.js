@@ -23,10 +23,7 @@ const createChatController =
     const { title, documentIds } =
       req.body;
     
-    if (!title?.trim()) {
-        throw new ApiError(400, "Title is required");
-    }
-
+    
     const chat =
       await createChat({
         ownerId: req.user._id,

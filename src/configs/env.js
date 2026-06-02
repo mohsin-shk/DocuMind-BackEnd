@@ -1,4 +1,4 @@
-import { cleanEnv, str, port } from "envalid";
+import { cleanEnv, str, port,num } from "envalid";
 
 export const env = cleanEnv(process.env, {
   PORT: port({
@@ -25,4 +25,15 @@ export const env = cleanEnv(process.env, {
   }),
   PINECONE_API_KEY: str(),
   PINECONE_INDEX_NAME: str(),
+  MAX_DOCUMENTS_PER_USER: num({
+    default: 5,
+  }),
+
+  MAX_QUESTIONS_PER_USER: num({
+    default: 10,
+  }),
+
+  MAX_TOKENS_PER_USER: num({
+    default: 5000,
+  }),
 });

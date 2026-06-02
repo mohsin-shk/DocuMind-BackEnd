@@ -129,6 +129,14 @@ const userSchema = new Schema(
                 type: Number,
                 default: 0,
             },
+            questionsAsked: {
+                type: Number,
+                default: 0,
+            },
+            lastUsageReset: {
+                type: Date,
+                default: Date.now,
+            },
         },
         preferences: {
             theme: {

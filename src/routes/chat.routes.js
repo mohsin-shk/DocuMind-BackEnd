@@ -14,6 +14,12 @@ import {
   sendMessageSchema,
   chatIdParamsSchema,
 } from "../validators/document.validator.js";
+import {
+    createChatLimiter,
+    sendMessageLimiter,
+    readLimiter,
+    deleteLimiter,
+} from "../middlewares/rateLimit.middleware.js";
 
 const router = Router();
 
@@ -27,17 +33,20 @@ CHAT ROUTES
 
 router.post(
   "/",
+  createChatLimiter,
   validate(createChatSchema),
   createChatController
 );
 
 router.get(
   "/",
+  readLimiter,
   getUserChatsController
 );
 
 router.get(
   "/:chatId/messages",
+  readLimiter,
   validate(
     chatIdParamsSchema,
     "params"
@@ -47,6 +56,7 @@ router.get(
 
 router.post(
   "/:chatId/messages",
+  sendMessageLimiter,
   validate(
     chatIdParamsSchema,
     "params"
@@ -60,6 +70,7 @@ router.post(
 
 router.delete(
   "/:chatId",
+  deleteLimiter,
   validate(
     chatIdParamsSchema,
     "params"

@@ -14,6 +14,12 @@ import {
   registerSchema,
   loginSchema,
 } from "../validators/auth.validator.js";
+import {
+    registerLimiter,
+    loginLimiter,
+    refreshTokenLimiter,
+    logoutLimiter,
+} from "../middlewares/rateLimit.middleware.js";
 
 const router = Router();
 
@@ -25,18 +31,21 @@ PUBLIC ROUTES
 
 router.post(
   "/register",
+  registerLimiter,
   validate(registerSchema),
   registerUserController
 );
 
 router.post(
   "/login",
+  loginLimiter,
   validate(loginSchema),
   loginUserController
 );
 
 router.post(
   "/refresh-token",
+  refreshTokenLimiter,
   refreshAccessTokenController
 );
 
@@ -48,6 +57,7 @@ PROTECTED ROUTES
 
 router.post(
   "/logout",
+  logoutLimiter,
   requireAuth,
   logoutUserController
 );

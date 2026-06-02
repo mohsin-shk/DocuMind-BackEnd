@@ -6,7 +6,8 @@ import fs from "fs";
 import { extractText } from "../ai/extractText.js";
 import { chunkText } from "../utils/chunkText.js";
 import { generateEmbeddings } from "./embedding.service.js";
-import { upsertDocumentEmbeddings, } from "./pinecone.service.js";
+import { upsertDocumentEmbeddings,deleteDocumentEmbeddings } from "./pinecone.service.js";
+import {checkAndIncrementDocumentUsage,decrementDocumentUsage,} from "./usage.service.js";
 
 /*
 ========================================
@@ -56,8 +57,17 @@ VALIDATE INPUTS
   const documentTitle =
     title?.trim() ||
     path.parse(originalFileName).name;
+  
+  /*
+    ========================================
+    CHECK DOCUMENT LIMIT BEFORE ANYTHING
+    ========================================
+    */
+
+  await checkAndIncrementDocumentUsage(ownerId);
 
   let cloudinaryResponse = null;
+  let document = null
 
   try {
     /*
@@ -82,7 +92,7 @@ VALIDATE INPUTS
     ========================================
     */
 
-    const document = await Document.create({
+     document = await Document.create({
       owner: ownerId,
       title: documentTitle,
       originalFileName,
@@ -138,13 +148,20 @@ VALIDATE INPUTS
 
   } catch (error) {
     /*
+        ========================================
+        ROLL BACK DOCUMENT COUNTER ON FAILURE
+        ========================================
+        */
+      await decrementDocumentUsage(ownerId);
+
+    /*
   ========================================
   CLEANUP CLOUDINARY FILE
   ========================================
   */
 
     if (
-      cloudinaryResponse?.public_id
+      cloudinaryResponse?.public_id && !document
     ) {
       await deleteFileFromCloudinary(
         cloudinaryResponse.public_id
@@ -360,4 +377,137 @@ const processDocument = async ({ documentId, localFilePath, }) => {
 
 }
 
-export { uploadDocument };
+/*
+========================================
+GET USER DOCUMENTS
+========================================
+*/
+
+const getUserDocuments = async (ownerId) => {
+    if (!ownerId) {
+        throw new ApiError(400, "Owner ID is required");
+    }
+
+    const documents = await Document.find({
+        owner: ownerId,
+        isDeleted: false,
+    })
+        .select("-extractedText") 
+        .sort({ createdAt: -1 });
+
+    return documents;
+};
+
+/*
+========================================
+GET SINGLE DOCUMENT
+========================================
+*/
+
+const getDocument = async ({ ownerId, documentId }) => {
+    if (!ownerId || !documentId) {
+        throw new ApiError(400, "Owner ID and document ID are required");
+    }
+
+    const document = await Document.findOne({
+        _id: documentId,
+        owner: ownerId,
+        isDeleted: false,
+    }).select("-extractedText");
+
+    if (!document) {
+        throw new ApiError(404, "Document not found");
+    }
+
+    return document;
+};
+
+/*
+========================================
+DELETE DOCUMENT
+========================================
+*/
+
+const deleteDocument = async ({ ownerId, documentId }) => {
+    if (!ownerId || !documentId) {
+        throw new ApiError(400, "Owner ID and document ID are required");
+    }
+
+    /*
+    ========================================
+    FETCH DOCUMENT
+    ========================================
+    */
+
+    const document = await Document.findOne({
+        _id: documentId,
+        owner: ownerId,
+        isDeleted: false,
+    });
+
+    if (!document) {
+        throw new ApiError(404, "Document not found");
+    }
+
+    /*
+    ========================================
+    DELETE FROM CLOUDINARY
+    ========================================
+    */
+
+    if (document.storage?.publicId) {
+        await deleteFileFromCloudinary(
+            document.storage.publicId
+        ).catch((err) => {
+            // log but don't block deletion if Cloudinary fails
+            console.warn(
+                `Cloudinary deletion failed for publicId ${document.storage.publicId}:`,
+                err.message
+            );
+        });
+    }
+
+    /*
+    ========================================
+    DELETE VECTORS FROM PINECONE
+    ========================================
+    */
+
+    if (
+        document.chunkCount > 0 &&
+        document.vectorNamespace
+    ) {
+        await deleteDocumentEmbeddings({
+            ownerId,
+            documentId,
+            chunkCount: document.chunkCount,
+        }).catch((err) => {
+            console.warn(
+                `Pinecone deletion failed for document ${documentId}:`,
+                err.message
+            );
+        });
+    }
+
+    /*
+    ========================================
+    DECREMENT USAGE COUNTER
+    ========================================
+    */
+
+    await decrementDocumentUsage(ownerId);
+
+    /*
+    ========================================
+    SOFT DELETE DOCUMENT RECORD
+    ========================================
+    */
+
+    document.isDeleted = true;
+    await document.save();
+
+    return document;
+};
+
+
+export { uploadDocument, getUserDocuments ,getDocument,deleteDocument, };

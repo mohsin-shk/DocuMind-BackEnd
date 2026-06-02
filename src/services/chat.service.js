@@ -4,6 +4,8 @@ import { Document } from "../models/document.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { askQuestion, generateChatTitle } from "./rag.service.js";
 import { env } from "../configs/env.js";
+import { resetUsageIfNeeded, checkAndIncrementQuestionUsage, checkTokenLimit, incrementTokenUsage, } from "./usage.service.js";
+
 /*
 ========================================
 CREATE CHAT
@@ -138,6 +140,16 @@ const sendMessage = async ({
   }
 
   /*
+    ========================================
+    USAGE CHECKS — before any DB or AI work
+    ========================================
+    */
+
+  await resetUsageIfNeeded(ownerId);
+  await checkTokenLimit(ownerId);
+  await checkAndIncrementQuestionUsage(ownerId);
+
+  /*
   ========================================
   FETCH CHAT
   ========================================
@@ -220,7 +232,18 @@ CALCULATE RESPONSE TIME
 
   const responseTime =
     Date.now() - startTime;
-  
+
+  /*
+    ========================================
+    INCREMENT TOKEN USAGE AFTER RAG
+    ========================================
+    */
+
+  await incrementTokenUsage(
+    ownerId,
+    ragResponse.tokenUsage?.total_tokens || 0
+  );
+
   /*
  ========================================
  UPDATE CHAT + OPTIONAL TITLE
@@ -254,8 +277,8 @@ CALCULATE RESPONSE TIME
     await Message.create({
       chat: chat._id,
       role: "assistant",
-      content:ragResponse.answer,
-      sources:ragResponse.sources,
+      content: ragResponse.answer,
+      sources: ragResponse.sources,
       tokenUsage: {
         promptTokens:
           ragResponse
@@ -280,7 +303,7 @@ CALCULATE RESPONSE TIME
       responseTime,
     });
 
-  
+
   /*
   ========================================
   RETURN RESPONSE
@@ -467,58 +490,6 @@ const getUserChats = async (
     createdAt: chat.createdAt,
   }));
 
-
-  /*
-  ========================================
-  ATTACH LAST MESSAGE PREVIEW
-  ========================================
-  */
-
-  // const formattedChats =
-  //   await Promise.all(
-  //     chats.map(async (chat) => {
-  //       const latestMessage =
-  //         await Message.findOne({
-  //           chat: chat._id,
-  //         })
-  //           .sort({
-  //             createdAt: -1,
-  //           })
-
-  //           .select(
-  //             "role content createdAt"
-  //           );
-
-  //       return {
-  //         _id: chat._id,
-
-  //         title: chat.title,
-
-  //         documents:
-  //           chat.documents,
-
-  //         documentCount:
-  //           chat.documents.length,
-
-  //         lastMessage:
-  //           latestMessage || null,
-
-  //         lastMessageAt:
-  //           chat.lastMessageAt,
-
-  //         createdAt:
-  //           chat.createdAt,
-  //       };
-  //     })
-  //   );
-
-  /*
-========================================
-RETURN CHATS
-========================================
-*/
-
-  // return formattedChats;
 
 }
 
