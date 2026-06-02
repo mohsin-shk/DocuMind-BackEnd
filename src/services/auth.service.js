@@ -1,7 +1,7 @@
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
-import {env} from "../configs/env.js"
+import { env } from "../configs/env.js"
 /*
 ========================================
 REGISTER USER SERVICE
@@ -445,59 +445,111 @@ LOGOUT USER SERVICE
 */
 
 const logoutUser = async (userId) => {
-  /*
-  ========================================
-  VALIDATE USER ID
-  ========================================
-  */
+    /*
+    ========================================
+    VALIDATE USER ID
+    ========================================
+    */
 
-  if (!userId) {
-    throw new ApiError(
-      400,
-      "User ID is required"
-    );
-  }
+    if (!userId) {
+        throw new ApiError(
+            400,
+            "User ID is required"
+        );
+    }
 
-  /*
-  ========================================
-  FIND USER
-  ========================================
-  */
+    /*
+    ========================================
+    FIND USER
+    ========================================
+    */
 
-  const user = await User.findById(userId);
+    const user = await User.findById(userId);
 
-  if (!user) {
-    throw new ApiError(
-      404,
-      "User not found"
-    );
-  }
+    if (!user) {
+        throw new ApiError(
+            404,
+            "User not found"
+        );
+    }
 
-  /*
-  ========================================
-  INVALIDATE SESSION
-  ========================================
-  */
+    /*
+    ========================================
+    INVALIDATE SESSION
+    ========================================
+    */
 
-  user.refreshToken = "";
+    user.refreshToken = "";
 
-  await user.save({
-    validateBeforeSave: false,
-  });
+    await user.save({
+        validateBeforeSave: false,
+    });
 
-  /*
-  ========================================
-  RETURN SUCCESS
-  ========================================
-  */
+    /*
+    ========================================
+    RETURN SUCCESS
+    ========================================
+    */
 
-  return {
-    success: true,
-  };
-  
+    return {
+        success: true,
+    };
+
 }
-const getCurrentUser = async () => {
+const getCurrentUser = async ({ userId }) => {
+    /*
+     ========================================
+     VALIDATE INPUT
+     ========================================
+     */
 
+    if (!userId) {
+        throw new ApiError(400, "User ID is required");
+    }
+
+    /*
+    ========================================
+    FETCH USER
+    ========================================
+    */
+
+    const user = await User.findById(userId).select(`
+        fullName
+        username
+        email
+        isEmailVerified
+        phoneNumber
+        isPhoneVerified
+        avatar
+        role
+        accountStatus
+        lastLogin
+        aiUsage
+        preferences
+        authProviders
+        createdAt
+    `);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    /*
+    ========================================
+    SHAPE RESPONSE — HIDE INTERNAL IDs
+    ========================================
+    */
+
+    const userObj = user.toJSON();
+
+    // Frontend only needs to know IF google is linked, not the internal providerId
+    userObj.authProviders = {
+        google: {
+            connected: !!user.authProviders?.google?.providerId,
+        },
+    };
+
+    return userObj;
 }
 
 // phase 2 :
@@ -510,4 +562,4 @@ const getCurrentUser = async () => {
 6. verifyOTP()
 */
 
-export { registerUser, generateAccessAndRefreshTokens, loginUser, refreshAccessToken ,logoutUser,getCurrentUser};
+export { registerUser, generateAccessAndRefreshTokens, loginUser, refreshAccessToken, logoutUser, getCurrentUser };

@@ -1,6 +1,6 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import {registerUser,loginUser,refreshAccessToken,logoutUser} from "../services/auth.service.js";
+import {registerUser,loginUser,refreshAccessToken,logoutUser,getCurrentUser} from "../services/auth.service.js";
 import {accessTokenCookieOptions,refreshTokenCookieOptions,} from "../constants/cookieOptions.js";
 
 
@@ -164,13 +164,27 @@ GET CURRENT USER CONTROLLER
 ========================================
 */
 
-const getCurrentUserController =
-  asyncHandler(async (req, res) => {
+const getCurrentUserController = asyncHandler(async (req, res) => {
+    /*
+    ========================================
+    GET CURRENT USER
+    ========================================
+    */
+
+    const user = await getCurrentUser({
+        userId: req.user._id,
+    });
+
+    /*
+    ========================================
+    RETURN RESPONSE
+    ========================================
+    */
     return res.status(200).json(
       new ApiResponse(
         200,
-        req.user,
-        "Current user fetched successfully"
+        { user },
+        "Current User fetched successfully"
       )
     );
 });
