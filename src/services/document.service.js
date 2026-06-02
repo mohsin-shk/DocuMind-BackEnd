@@ -459,7 +459,6 @@ const deleteDocument = async ({ ownerId, documentId }) => {
         await deleteFileFromCloudinary(
             document.storage.publicId
         ).catch((err) => {
-            // log but don't block deletion if Cloudinary fails
             console.warn(
                 `Cloudinary deletion failed for publicId ${document.storage.publicId}:`,
                 err.message
@@ -486,6 +485,7 @@ const deleteDocument = async ({ ownerId, documentId }) => {
                 `Pinecone deletion failed for document ${documentId}:`,
                 err.message
             );
+            console.warn("Full error:", err);
         });
     }
 
@@ -499,12 +499,11 @@ const deleteDocument = async ({ ownerId, documentId }) => {
 
     /*
     ========================================
-    SOFT DELETE DOCUMENT RECORD
+    HARD DELETE DOCUMENT RECORD
     ========================================
     */
 
-    document.isDeleted = true;
-    await document.save();
+    await Document.findByIdAndDelete(document._id);
 
     return document;
 };

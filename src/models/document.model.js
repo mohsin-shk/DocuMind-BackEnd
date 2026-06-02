@@ -25,7 +25,7 @@ const documentSchema = new Schema({
     trim: true,
     maxlength: 150,
   },
-  
+
   originalFileName: {
     type: String,
     required: true,
@@ -123,6 +123,16 @@ const documentSchema = new Schema({
   vectorNamespace: {
     type: String,
     default: "",
+  },
+  /*
+  ========================================
+  CHUNK COUNTS
+  ========================================
+  */
+
+  chunkCount: {         
+    type: Number,
+    default: 0,
   },
 
   /*

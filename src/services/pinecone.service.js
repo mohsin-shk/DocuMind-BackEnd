@@ -104,8 +104,6 @@ const upsertDocumentEmbeddings = async ({ ownerId, documentId, title, embeddedCh
             .namespace(namespace)
             .upsert({ records: vectors });
 
-
-
         /*
         ========================================
         RETURN NAMESPACE
@@ -261,7 +259,10 @@ const deleteDocumentEmbeddings = async ({ ownerId, documentId, chunkCount, }) =>
                 (_, index) =>
                     `${documentId}_${index}`
             );
-
+        
+        console.log("Attempting to delete vectorIds:", JSON.stringify(vectorIds));
+        console.log("In namespace:", namespace);
+        
         /*
         ========================================
         DELETE VECTORS
@@ -270,16 +271,18 @@ const deleteDocumentEmbeddings = async ({ ownerId, documentId, chunkCount, }) =>
 
         await pineconeIndex
             .namespace(namespace)
-            .deleteMany({ ids: vectorIds });
+            .deleteMany({ids:vectorIds});
 
         return true;
 
     } catch (error) {
+        if (error instanceof ApiError) throw error;
+        console.error("RAW PINECONE DELETE ERROR:", error);
         throw new ApiError(
             500,
-            "Failed to delete document embeddings"
+            error.message || "Failed to delete document embeddings"
         );
     }
 }
 
-export { upsertDocumentEmbeddings, queryDocumentEmbeddings, deleteDocumentEmbeddings, };
+export { upsertDocumentEmbeddings, queryDocumentEmbeddings, deleteDocumentEmbeddings,};
