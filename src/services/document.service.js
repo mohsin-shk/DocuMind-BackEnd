@@ -15,7 +15,7 @@ UPLOAD DOCUMENT SERVICE
 ========================================
 */
 
-const uploadDocument = async ({ uploadedFile, ownerId, title, }) => {
+const uploadDocument = async ({ uploadedFile, ownerId }) => {
   /*
 ========================================
 VALIDATE INPUTS
@@ -54,9 +54,7 @@ VALIDATE INPUTS
   ========================================
   */
 
-  const documentTitle =
-    title?.trim() ||
-    path.parse(originalFileName).name;
+  const documentTitle = path.parse(originalFileName).name;
   
   /*
     ========================================
@@ -148,11 +146,11 @@ VALIDATE INPUTS
 
   } catch (error) {
     /*
-        ========================================
-        ROLL BACK DOCUMENT COUNTER ON FAILURE
-        ========================================
-        */
-      await decrementDocumentUsage(ownerId);
+    ========================================
+    ROLL BACK DOCUMENT COUNTER ON FAILURE
+    ========================================
+    */
+    await decrementDocumentUsage(ownerId);
 
     /*
   ========================================

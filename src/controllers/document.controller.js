@@ -32,7 +32,6 @@ const uploadDocumentController = asyncHandler( async (req,res)=>{
 
     const uploadedFile = req.file;
     const ownerId = req.user._id;
-    const { title } = req.body;
 
     /*
     ========================================
@@ -43,7 +42,6 @@ const uploadDocumentController = asyncHandler( async (req,res)=>{
     const document = await uploadDocument({
         uploadedFile,
         ownerId,
-        title,
     });
 
     /*
