@@ -37,11 +37,11 @@ const createChat = async ({
   */
 
   if (
-    !Array.isArray(documentIds)
+    !Array.isArray(documentIds) || documentIds.length === 0
   ) {
     throw new ApiError(
       400,
-      "documentIds must be an array"
+      "At least one document is required to start a chat"
     );
   }
 
@@ -71,7 +71,8 @@ const createChat = async ({
         },
 
         owner: ownerId,
-      });
+        isDeleted: false,
+      }).select("_id processingStatus title");
 
     if (
       documents.length !==
@@ -79,10 +80,22 @@ const createChat = async ({
     ) {
       throw new ApiError(
         403,
-        "One or more documents are invalid"
+        "One or more documents are invalid or do not belong to you"
       );
     }
   }
+
+    // const notReady = documents.filter(
+    //   (doc) => doc.processingStatus !== "ready"
+    // );
+
+    // if (notReady.length > 0) {
+    //   const titles = notReady.map((d) => d.title).join(", ");
+    //   throw new ApiError(
+    //     400,
+    //     `These documents are not ready yet: ${titles}. Please wait for processing to complete.`
+    //   );
+    // }
 
   /*
   ========================================
@@ -94,9 +107,7 @@ const createChat = async ({
 
   const chat = await Chat.create({
     owner: ownerId,
-
     title: chatTitle,
-
     documents:
       uniqueDocumentIds,
   });

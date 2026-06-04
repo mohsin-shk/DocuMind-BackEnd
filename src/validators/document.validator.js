@@ -69,7 +69,9 @@ const createChatSchema =
 
         documentIds: z
             .array(objectIdSchema)
-            .default([]),
+            .min(1, "At least one document is required to start a chat")
+            .max(2, "Cannot select more than 2 documents for a chat"),
+            // .default([]),
     });
 
 /*

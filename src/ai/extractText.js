@@ -56,7 +56,7 @@ const extractText = async ({
 
   return {
     ...result,
-    mimeType: resolvedMime, // useful downstream for chunking strategy, logging, etc.
+    mimeType: resolvedMime,
   };
 
 };
