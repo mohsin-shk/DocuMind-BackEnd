@@ -314,12 +314,6 @@ const loginUser = async ({ identifier, password }) => {
  ========================================
  */
 
-    // user.lastLogin = new Date();
-
-    // await user.save({
-    //     validateBeforeSave: false,
-    // });
-
     await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
 
     /*
