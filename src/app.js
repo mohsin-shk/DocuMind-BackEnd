@@ -22,9 +22,11 @@ app.use(compression());
 // Logger middleware
 app.use(morgan("dev"));
 
+const allowedOrigins = env.CORS_ORIGIN.split(",");
+
 // CORS
 app.use(cors({
-    origin:env.CORS_ORIGIN,
+    origin:allowedOrigins,
     credentials:true
 }))
 
@@ -44,6 +46,15 @@ Routes will go here
 ========================
 */
 app.use(globalLimiter);
+
+app.get("/api/v1/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Documind API is running",
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents",documentRoutes);
